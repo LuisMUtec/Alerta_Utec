@@ -1,0 +1,277 @@
+{
+  "family": "alerta-utec-airflow",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "executionRoleArn": "arn:aws:iam::439535099835:role/LabRole",
+  "taskRoleArn": "arn:aws:iam::439535099835:role/LabRole",
+  "containerDefinitions": [
+    {
+      "name": "airflow-webserver",
+      "image": "apache/airflow:2.10.3-python3.11",
+      "essential": true,
+      "command": [
+        "bash",
+        "-c",
+        "pip install boto3 requests apache-airflow-providers-http awscli && aws s3 sync s3://${S3_BUCKET_DAGS}/dags/ /opt/airflow/dags/ && airflow db migrate && airflow users create --username admin --firstname Admin --lastname UTEC --role Admin --email admin@utec.edu.pe --password admin || true && airflow webserver"
+      ],
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "AIRFLOW__DATABASE__SQL_ALCHEMY_CONN",
+          "value": "${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}"
+        },
+        {
+          "name": "AIRFLOW__CORE__EXECUTOR",
+          "value": "${AIRFLOW__CORE__EXECUTOR}"
+        },
+        {
+          "name": "AIRFLOW__CORE__LOAD_EXAMPLES",
+          "value": "${AIRFLOW__CORE__LOAD_EXAMPLES}"
+        },
+        {
+          "name": "AIRFLOW__CORE__DAGS_FOLDER",
+          "value": "${AIRFLOW__CORE__DAGS_FOLDER}"
+        },
+        {
+          "name": "AIRFLOW__WEBSERVER__SECRET_KEY",
+          "value": "${AIRFLOW__WEBSERVER__SECRET_KEY}"
+        },
+        {
+          "name": "AWS_DEFAULT_REGION",
+          "value": "${AWS_DEFAULT_REGION}"
+        },
+        {
+          "name": "API_BASE_URL",
+          "value": "${API_BASE_URL}"
+        },
+        {
+          "name": "WEBSOCKET_URL",
+          "value": "${WEBSOCKET_URL}"
+        },
+        {
+          "name": "DYNAMODB_TABLE_INCIDENTES",
+          "value": "${DYNAMODB_TABLE_INCIDENTES}"
+        },
+        {
+          "name": "EMAIL_SEGURIDAD",
+          "value": "${EMAIL_SEGURIDAD}"
+        },
+        {
+          "name": "EMAIL_INFRAESTRUCTURA",
+          "value": "${EMAIL_INFRAESTRUCTURA}"
+        },
+        {
+          "name": "EMAIL_LIMPIEZA",
+          "value": "${EMAIL_LIMPIEZA}"
+        },
+        {
+          "name": "EMAIL_TECNOLOGIA",
+          "value": "${EMAIL_TECNOLOGIA}"
+        },
+        {
+          "name": "EMAIL_ACADEMICO",
+          "value": "${EMAIL_ACADEMICO}"
+        },
+        {
+          "name": "EMAIL_SOPORTE",
+          "value": "${EMAIL_SOPORTE}"
+        },
+        {
+          "name": "SMTP_HOST",
+          "value": "${SMTP_HOST}"
+        },
+        {
+          "name": "SMTP_PORT",
+          "value": "${SMTP_PORT}"
+        },
+        {
+          "name": "SMTP_EMAIL",
+          "value": "${SMTP_EMAIL}"
+        },
+        {
+          "name": "SMTP_PASSWORD",
+          "value": "${SMTP_PASSWORD}"
+        },
+        {
+          "name": "SMS_CONTACTO_SEGURIDAD_1",
+          "value": "${SMS_CONTACTO_SEGURIDAD_1}"
+        },
+        {
+          "name": "SMS_CONTACTO_SEGURIDAD_2",
+          "value": "${SMS_CONTACTO_SEGURIDAD_2}"
+        },
+        {
+          "name": "S3_BUCKET_REPORTES",
+          "value": "${S3_BUCKET_REPORTES}"
+        },
+        {
+          "name": "S3_BUCKET_DAGS",
+          "value": "${S3_BUCKET_DAGS}"
+        },
+        {
+          "name": "DAG_CLASIFICAR_INTERVAL_MINUTES",
+          "value": "${DAG_CLASIFICAR_INTERVAL_MINUTES}"
+        },
+        {
+          "name": "DAG_NOTIFICACIONES_INTERVAL_MINUTES",
+          "value": "${DAG_NOTIFICACIONES_INTERVAL_MINUTES}"
+        },
+        {
+          "name": "DAG_REPORTES_INTERVAL_HOURS",
+          "value": "${DAG_REPORTES_INTERVAL_HOURS}"
+        },
+        {
+          "name": "THRESHOLD_TIEMPO_CRITICO_MINUTES",
+          "value": "${THRESHOLD_TIEMPO_CRITICO_MINUTES}"
+        },
+        {
+          "name": "DASHBOARD_URL",
+          "value": "${DASHBOARD_URL}"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/alerta-utec-airflow",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "webserver"
+        }
+      }
+    },
+    {
+      "name": "airflow-scheduler",
+      "image": "apache/airflow:2.10.3-python3.11",
+      "essential": true,
+      "command": [
+        "bash",
+        "-c",
+        "pip install boto3 requests apache-airflow-providers-http awscli && aws s3 sync s3://${S3_BUCKET_DAGS}/dags/ /opt/airflow/dags/ && sleep 30 && airflow scheduler"
+      ],
+      "environment": [
+        {
+          "name": "AIRFLOW__DATABASE__SQL_ALCHEMY_CONN",
+          "value": "${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}"
+        },
+        {
+          "name": "AIRFLOW__CORE__EXECUTOR",
+          "value": "${AIRFLOW__CORE__EXECUTOR}"
+        },
+        {
+          "name": "AIRFLOW__CORE__LOAD_EXAMPLES",
+          "value": "${AIRFLOW__CORE__LOAD_EXAMPLES}"
+        },
+        {
+          "name": "AIRFLOW__CORE__DAGS_FOLDER",
+          "value": "${AIRFLOW__CORE__DAGS_FOLDER}"
+        },
+        {
+          "name": "AWS_DEFAULT_REGION",
+          "value": "${AWS_DEFAULT_REGION}"
+        },
+        {
+          "name": "API_BASE_URL",
+          "value": "${API_BASE_URL}"
+        },
+        {
+          "name": "WEBSOCKET_URL",
+          "value": "${WEBSOCKET_URL}"
+        },
+        {
+          "name": "DYNAMODB_TABLE_INCIDENTES",
+          "value": "${DYNAMODB_TABLE_INCIDENTES}"
+        },
+        {
+          "name": "EMAIL_SEGURIDAD",
+          "value": "${EMAIL_SEGURIDAD}"
+        },
+        {
+          "name": "EMAIL_INFRAESTRUCTURA",
+          "value": "${EMAIL_INFRAESTRUCTURA}"
+        },
+        {
+          "name": "EMAIL_LIMPIEZA",
+          "value": "${EMAIL_LIMPIEZA}"
+        },
+        {
+          "name": "EMAIL_TECNOLOGIA",
+          "value": "${EMAIL_TECNOLOGIA}"
+        },
+        {
+          "name": "EMAIL_ACADEMICO",
+          "value": "${EMAIL_ACADEMICO}"
+        },
+        {
+          "name": "EMAIL_SOPORTE",
+          "value": "${EMAIL_SOPORTE}"
+        },
+        {
+          "name": "SMTP_HOST",
+          "value": "${SMTP_HOST}"
+        },
+        {
+          "name": "SMTP_PORT",
+          "value": "${SMTP_PORT}"
+        },
+        {
+          "name": "SMTP_EMAIL",
+          "value": "${SMTP_EMAIL}"
+        },
+        {
+          "name": "SMTP_PASSWORD",
+          "value": "${SMTP_PASSWORD}"
+        },
+        {
+          "name": "SMS_CONTACTO_SEGURIDAD_1",
+          "value": "${SMS_CONTACTO_SEGURIDAD_1}"
+        },
+        {
+          "name": "SMS_CONTACTO_SEGURIDAD_2",
+          "value": "${SMS_CONTACTO_SEGURIDAD_2}"
+        },
+        {
+          "name": "S3_BUCKET_REPORTES",
+          "value": "${S3_BUCKET_REPORTES}"
+        },
+        {
+          "name": "S3_BUCKET_DAGS",
+          "value": "${S3_BUCKET_DAGS}"
+        },
+        {
+          "name": "DAG_CLASIFICAR_INTERVAL_MINUTES",
+          "value": "${DAG_CLASIFICAR_INTERVAL_MINUTES}"
+        },
+        {
+          "name": "DAG_NOTIFICACIONES_INTERVAL_MINUTES",
+          "value": "${DAG_NOTIFICACIONES_INTERVAL_MINUTES}"
+        },
+        {
+          "name": "DAG_REPORTES_INTERVAL_HOURS",
+          "value": "${DAG_REPORTES_INTERVAL_HOURS}"
+        },
+        {
+          "name": "THRESHOLD_TIEMPO_CRITICO_MINUTES",
+          "value": "${THRESHOLD_TIEMPO_CRITICO_MINUTES}"
+        },
+        {
+          "name": "DASHBOARD_URL",
+          "value": "${DASHBOARD_URL}"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/alerta-utec-airflow",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "scheduler"
+        }
+      }
+    }
+  ]
+}

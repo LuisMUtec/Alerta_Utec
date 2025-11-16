@@ -6,3 +6,6 @@ node_modules/
 .vscode/
 .aws/
 setup-credentials.ps1
+
+# Airflow task definition (contiene credenciales)
+airflow/task-definition.json

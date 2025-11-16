@@ -47,20 +47,20 @@ exports.handler = withCors(async (event) => {
       // Autoridades ven incidentes de su área
       const allIncidentes = await scan("Incidentes");
       
-      // Mapeo de áreas a tipos de incidente
-      const areaToTypeMap = {
-        'seguridad': ['seguridad'],
-        'enfermeria': ['emergencia_medica'],
-        'infraestructura': ['infraestructura'],
-        'limpieza': ['infraestructura'],
-        'tecnologia': ['infraestructura', 'otro'],
-        'mantenimiento': ['infraestructura']
-      };
+      console.log(`Filtrando incidentes para autoridad de área: ${area}`);
+      console.log(`Total de incidentes antes de filtrar: ${allIncidentes.length}`);
       
-      const tiposPermitidos = areaToTypeMap[area] || [];
-      incidentes = allIncidentes.filter(inc => tiposPermitidos.includes(inc.tipo));
-    } else if (rol === "administrativo" || rol === "seguridad") {
-      // Administrativos y seguridad ven todo
+      // Filtrar por el campo 'area' del incidente
+      incidentes = allIncidentes.filter(inc => {
+        const incidenteArea = inc.area || 'general';
+        const match = incidenteArea.toLowerCase() === area.toLowerCase();
+        console.log(`Incidente ${inc.incidenteId}: area="${incidenteArea}", match=${match}`);
+        return match;
+      });
+      
+      console.log(`Incidentes filtrados para área ${area}: ${incidentes.length}`);
+    } else if (rol === "administrativo") {
+      // Administrativos ven todo
       incidentes = await scan("Incidentes");
     } else {
       // Otros roles sin permisos
@@ -76,6 +76,7 @@ exports.handler = withCors(async (event) => {
     const items = sortedIncidentes.map(inc => ({
       incidenteId: inc.incidenteId,
       tipo: inc.tipo,
+      area: inc.area || 'general',
       estado: inc.estado,
       ubicacion: inc.ubicacion,
       urgencia: inc.urgencia,

@@ -4,7 +4,7 @@
 
 ### 1️⃣ **Conexión WebSocket**
 
-Cuando un usuario (especialmente Admin/Seguridad) abre el panel de administración:
+Cuando un usuario (especialmente Autoridad/Administrativo) abre el panel de administración:
 
 ```javascript
 // Frontend: src/pages/Admin.jsx

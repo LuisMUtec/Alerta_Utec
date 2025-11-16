@@ -77,13 +77,13 @@ Sistema de notificaciones por correo electrónico:
 
 - **Nuevos incidentes**: Email automático cuando se crea un incidente
 - **Cambios de estado**: Email cuando se actualiza el estado de un incidente
-- **Suscripción automática**: Usuarios con rol `seguridad` o `administrador` se suscriben automáticamente al registrarse
+- **Suscripción automática**: Usuarios con rol `autoridad` o `administrativo` se suscriben automáticamente al registrarse
 - **Confirmación requerida**: Los usuarios deben confirmar su suscripción haciendo click en el link enviado por AWS SNS
 - **Formato texto plano**: Emails legibles con todos los detalles del incidente
 
 #### Quiénes reciben notificaciones por email:
-- ✅ Usuarios registrados con rol **seguridad**
-- ✅ Usuarios registrados con rol **administrador**
+- ✅ Usuarios registrados con rol **autoridad** (todas las áreas)
+- ✅ Usuarios registrados con rol **administrativo**
 - ✅ Email configurado en `serverless.yml` (`seguridad@utec.edu.pe`)
 - ❌ Usuarios con rol **estudiante** (solo reportan, no reciben notificaciones)
 
@@ -95,7 +95,7 @@ Sistema de notificaciones por correo electrónico:
    - Clave primaria: `userId`
    - Índice secundario: `EmailIndex` para búsquedas por email
    - Campos: email, password (hasheado), rol, fechaCreacion
-   - Auto-suscripción a SNS para roles seguridad/administrador
+   - Auto-suscripción a SNS para roles autoridad/administrativo
 
 2. **Incidentes**
    - Clave primaria: `incidenteId`
@@ -151,7 +151,7 @@ npm run deploy
 
 3. **Confirmar suscripción**: Revisar tu bandeja de entrada y hacer click en el link de confirmación enviado por AWS SNS
 
-4. **Usuarios registrados**: Al registrarse con rol `seguridad` o `administrador`, recibirán automáticamente un email de confirmación de suscripción
+4. **Usuarios registrados**: Al registrarse con rol `autoridad` o `administrativo`, recibirán automáticamente un email de confirmación de suscripción
 
 ## 🗄️ Estructura
 

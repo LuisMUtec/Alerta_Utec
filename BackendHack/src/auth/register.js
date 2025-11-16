@@ -86,10 +86,10 @@ async function subscribeToSNSTopic(email, rol) {
       return;
     }
 
-    // Solo suscribir a usuarios de seguridad y administrativos
+    // Solo suscribir a usuarios administrativos y autoridades
     // Estudiantes pueden reportar pero no necesitan recibir todas las notificaciones
     // Autoridades reciben notificaciones según su área
-    if (rol === "seguridad" || rol === "administrativo" || rol === "autoridad") {
+    if (rol === "administrativo" || rol === "autoridad") {
       await sns.subscribe({
         Protocol: "email",
         TopicArn: topicArn,

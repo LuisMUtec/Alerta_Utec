@@ -21,15 +21,22 @@ exports.handler = withCors(async (event) => {
       return auth.error;
     }
 
-    const { rol } = auth.user;
+    const { rol, userId } = auth.user;
 
-    // Solo autoridades, seguridad y administrativos pueden actualizar estados
-    if (rol !== "autoridad" && rol !== "seguridad" && rol !== "administrativo") {
-      return errorResponse(403, "No tienes permisos para actualizar estados de incidentes");
+    // Obtener el nuevo estado del body
+    const { nuevoEstado } = JSON.parse(event.body || '{}');
+
+    // Si el estado es "cancelado", cualquier usuario autenticado puede hacerlo
+    if (nuevoEstado === "cancelado") {
+      // Permitir a cualquier usuario cancelar (la lógica de quién ve qué ya está en listarIncidentes)
+    } else {
+      // Solo autoridades y administrativos pueden cambiar otros estados
+      if (rol !== "autoridad" && rol !== "administrativo") {
+        return errorResponse(403, "No tienes permisos para actualizar estados de incidentes");
+      }
     }
 
     const incidenteId = event.pathParameters.id;
-    const { nuevoEstado } = JSON.parse(event.body);
 
     // Validate
     if (!incidenteId || !nuevoEstado) {

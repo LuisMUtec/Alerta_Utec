@@ -25,7 +25,7 @@ exports.handler = withCors(async (event) => {
     const { userId, email } = auth.user;
 
     const data = JSON.parse(event.body);
-    const { tipo, descripcion, ubicacion, urgencia } = data;
+    const { tipo, descripcion, ubicacion, urgencia, area } = data;
 
     // Validate required fields
     if (!tipo || !descripcion || !ubicacion || !urgencia) {
@@ -41,6 +41,7 @@ exports.handler = withCors(async (event) => {
       descripcion,
       ubicacion,
       urgencia,
+      area: area || 'general', // Área asignada automáticamente
       userId,
       emailReportante: email,
       estado: "pendiente",
@@ -91,10 +92,46 @@ async function publishToSNS(incidente) {
 
     // Formato legible para email de texto plano
     const tipoLabels = {
-      emergencia_medica: "Emergencia Médica",
-      seguridad: "Seguridad",
-      infraestructura: "Infraestructura",
-      otro: "Otro"
+      // Seguridad
+      robo: "Robo o hurto",
+      acoso: "Acoso o intimidación",
+      pelea: "Pelea o altercado",
+      acceso_no_autorizado: "Acceso no autorizado",
+      
+      // Salud
+      emergencia_medica: "Emergencia médica",
+      accidente: "Accidente",
+      malestar: "Malestar o desmayo",
+      
+      // Infraestructura
+      fuga_agua: "Fuga de agua",
+      daño_estructural: "Daño estructural",
+      inundacion: "Inundación",
+      
+      // Limpieza
+      baño_sucio: "Baño en mal estado",
+      basura_acumulada: "Basura acumulada",
+      derrame: "Derrame o suciedad",
+      
+      // Tecnología
+      internet_caido: "Internet caído",
+      equipo_dañado: "Equipo dañado",
+      sistema_caido: "Sistema caído",
+      
+      // Mantenimiento
+      luz_fundida: "Luz fundida",
+      aire_acondicionado: "Aire acondicionado",
+      puerta_dañada: "Puerta dañada"
+    };
+
+    const areaLabels = {
+      seguridad: "🔒 Seguridad",
+      enfermeria: "🏥 Enfermería",
+      infraestructura: "🏗️ Infraestructura",
+      limpieza: "🧹 Limpieza",
+      tecnologia: "💻 Tecnología",
+      mantenimiento: "🔧 Mantenimiento",
+      general: "⚠️ General"
     };
 
     const urgenciaLabels = {
@@ -110,6 +147,7 @@ async function publishToSNS(incidente) {
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ID: ${incidente.incidenteId}
 Tipo: ${tipoLabels[incidente.tipo] || incidente.tipo}
+Área Asignada: ${areaLabels[incidente.area] || incidente.area}
 Urgencia: ${urgenciaLabels[incidente.urgencia] || incidente.urgencia}
 Estado: ${incidente.estado}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

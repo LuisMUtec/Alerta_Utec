@@ -9,9 +9,13 @@ from airflow.operators.python import PythonOperator
 import json
 import boto3
 from collections import Counter
+import os
 
-# Configuración
-API_BASE_URL = "https://if1stu7r2g.execute-api.us-east-1.amazonaws.com/dev"
+# Configuración desde variables de entorno
+API_BASE_URL = os.getenv('API_BASE_URL', 'https://if1stu7r2g.execute-api.us-east-1.amazonaws.com/dev')
+DYNAMODB_TABLE = os.getenv('DYNAMODB_TABLE_INCIDENTES', 'Incidentes')
+AWS_REGION = os.getenv('AWS_DEFAULT_REGION', 'us-east-1')
+S3_BUCKET_REPORTES = os.getenv('S3_BUCKET_REPORTES', 'alerta-utec-reportes')
 
 default_args = {
     'owner': 'alerta-utec',
@@ -26,15 +30,15 @@ dag = DAG(
     'generar_reportes',
     default_args=default_args,
     description='Generación de reportes estadísticos periódicos',
-    schedule_interval=timedelta(hours=6),  # Cada 6 horas
+    schedule_interval=timedelta(hours=int(os.getenv('DAG_REPORTES_INTERVAL_HOURS', '6'))),
     catchup=False,
     tags=['reportes', 'analytics', 'estadisticas']
 )
 
 def recolectar_datos_incidentes(**context):
     """Recolecta todos los incidentes del período"""
-    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-    table = dynamodb.Table('Incidentes')
+    dynamodb = boto3.resource('dynamodb', region_name=AWS_REGION)
+    table = dynamodb.Table(DYNAMODB_TABLE)
 
     # Obtener todos los incidentes
     response = table.scan()
@@ -259,20 +263,22 @@ def guardar_reporte_s3(**context):
     """Guarda el reporte en S3 para histórico"""
     reporte = context['ti'].xcom_pull(key='reporte_final')
 
-    # Descomentar para guardar en S3
-    # s3 = boto3.client('s3')
-    # bucket = 'alerta-utec-reportes'
-    # key = f"reportes/{datetime.now().strftime('%Y-%m-%d-%H%M')}.json"
+    try:
+        s3 = boto3.client('s3', region_name=AWS_REGION)
+        key = f"reportes/{datetime.now().strftime('%Y-%m-%d-%H%M')}.json"
 
-    # s3.put_object(
-    #     Bucket=bucket,
-    #     Key=key,
-    #     Body=json.dumps(reporte, indent=2),
-    #     ContentType='application/json'
-    # )
-
-    print(f"📁 Reporte guardado en S3 (simulado)")
-    return True
+        s3.put_object(
+            Bucket=S3_BUCKET_REPORTES,
+            Key=key,
+            Body=json.dumps(reporte, indent=2),
+            ContentType='application/json'
+        )
+        print(f"📁 Reporte guardado en S3: s3://{S3_BUCKET_REPORTES}/{key}")
+        return True
+    except Exception as e:
+        print(f"⚠️ Error guardando en S3: {str(e)}")
+        print(f"📁 Reporte guardado solo en logs")
+        return False
 
 # Definir tareas
 task_recolectar = PythonOperator(
