@@ -1,6 +1,5 @@
+org: luismutec
 service: alerta-utec-backend
-
-frameworkVersion: '3'
 
 provider:
   name: aws
@@ -8,7 +7,7 @@ provider:
   region: us-east-1
   stage: dev
   iam:
-    role: arn:aws:iam::429096294781:role/LabRole
+    role: arn:aws:iam::439535099835:role/LabRole
   environment:
     SNS_TOPIC_ARN: { Ref: IncidentesSNSTopic }
   httpApi:
@@ -140,6 +139,8 @@ resources:
             AttributeType: S
           - AttributeName: email
             AttributeType: S
+          - AttributeName: area
+            AttributeType: S
         KeySchema:
           - AttributeName: userId
             KeyType: HASH
@@ -147,6 +148,12 @@ resources:
           - IndexName: EmailIndex
             KeySchema:
               - AttributeName: email
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+          - IndexName: AreaIndex
+            KeySchema:
+              - AttributeName: area
                 KeyType: HASH
             Projection:
               ProjectionType: ALL
@@ -159,9 +166,18 @@ resources:
         AttributeDefinitions:
           - AttributeName: incidenteId
             AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
         KeySchema:
           - AttributeName: incidenteId
             KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: UserIdIndex
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
 
     WebSocketConnections:
       Type: AWS::DynamoDB::Table

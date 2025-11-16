@@ -2,16 +2,32 @@ const AWS = require("aws-sdk");
 const { get } = require("../../db/get");
 const { update } = require("../../db/update");
 const { successResponse, errorResponse } = require("../utils/responses");
+const { withCors } = require("../utils/withCors");
+const { requireAuth } = require("../utils/auth");
 
 const dynamo = new AWS.DynamoDB.DocumentClient();
 
 /**
- * Update incident status
+ * Update incident status (requires authorization)
  * PATCH /incidentes/{id}/estado
  * Body: { nuevoEstado }
+ * Headers: { Authorization: "Bearer <token>" }
  */
-exports.handler = async (event) => {
+exports.handler = withCors(async (event) => {
   try {
+    // Require authentication
+    const auth = requireAuth(event);
+    if (!auth.authenticated) {
+      return auth.error;
+    }
+
+    const { rol } = auth.user;
+
+    // Solo autoridades, seguridad y administrativos pueden actualizar estados
+    if (rol !== "autoridad" && rol !== "seguridad" && rol !== "administrativo") {
+      return errorResponse(403, "No tienes permisos para actualizar estados de incidentes");
+    }
+
     const incidenteId = event.pathParameters.id;
     const { nuevoEstado } = JSON.parse(event.body);
 
@@ -67,7 +83,7 @@ exports.handler = async (event) => {
     console.error("Error en actualizarEstado:", error);
     return errorResponse(500, "Error al actualizar estado", error);
   }
-};
+});
 
 /**
  * Publish incident status update to SNS topic

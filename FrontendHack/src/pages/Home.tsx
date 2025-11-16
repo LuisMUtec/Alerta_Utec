@@ -6,6 +6,7 @@ import IncidentList from "../components/IncidentList";
 export default function Home() {
   const userId = localStorage.getItem("userId");
   const rol = localStorage.getItem("rol");
+  const area = localStorage.getItem("area");
 
   const handleLogout = () => {
     localStorage.clear();
@@ -33,8 +34,13 @@ export default function Home() {
                   <span className="hidden sm:flex items-center gap-2 text-sm text-slate-600 px-3 py-1.5 rounded-lg bg-slate-100">
                     <User className="w-3.5 h-3.5" />
                     {rol}
+                    {area && rol === "autoridad" && (
+                      <span className="ml-1 text-blue-600 font-semibold">
+                        ({area})
+                      </span>
+                    )}
                   </span>
-                  {(rol === "administrador" || rol === "seguridad") && (
+                  {(rol === "administrativo" || rol === "seguridad" || rol === "autoridad") && (
                     <Link
                       to="/admin"
                       className="hidden sm:flex items-center gap-2 no-underline bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-5 rounded-xl transition-colors text-sm"
@@ -79,9 +85,17 @@ export default function Home() {
           <p className="text-slate-600 text-base max-w-2xl mx-auto">
             Reporta incidentes y mantente informado sobre la seguridad en el campus universitario
           </p>
+          {rol === "estudiante" && (
+            <div className="mt-4 max-w-2xl mx-auto">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+                <strong>📋 Nota:</strong> Como estudiante, solo puedes ver los incidentes que tú has reportado.
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Todos los usuarios pueden crear incidentes */}
           <div className="lg:col-span-1">
             <div className="sticky top-20">
               <IncidentForm />

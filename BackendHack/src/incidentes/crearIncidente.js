@@ -1,19 +1,31 @@
 const AWS = require("aws-sdk");
 const { v4 } = require("uuid");
 const { put } = require("../../db/put");
+const { query } = require("../../db/query");
 const { successResponse, errorResponse } = require("../utils/responses");
+const { withCors } = require("../utils/withCors");
+const { requireAuth } = require("../utils/auth");
 
 const dynamo = new AWS.DynamoDB.DocumentClient();
 
 /**
- * Create a new incident
+ * Create a new incident (requires authentication)
  * POST /incidentes
  * Body: { tipo, descripcion, ubicacion, urgencia }
+ * Headers: { Authorization: "Bearer <token>" }
  */
-exports.handler = async (event) => {
+exports.handler = withCors(async (event) => {
   try {
+    // Require authentication
+    const auth = requireAuth(event);
+    if (!auth.authenticated) {
+      return auth.error;
+    }
+
+    const { userId, email } = auth.user;
+
     const data = JSON.parse(event.body);
-    const { tipo, descripcion, ubicacion, urgencia, emailReportante } = data;
+    const { tipo, descripcion, ubicacion, urgencia } = data;
 
     // Validate required fields
     if (!tipo || !descripcion || !ubicacion || !urgencia) {
@@ -29,24 +41,28 @@ exports.handler = async (event) => {
       descripcion,
       ubicacion,
       urgencia,
-      emailReportante: emailReportante || null,
+      userId,
+      emailReportante: email,
       estado: "pendiente",
       fechaCreacion: new Date().toISOString(),
       historial: [
         {
           accion: "creado",
-          fecha: new Date().toISOString()
+          fecha: new Date().toISOString(),
+          usuario: email
         }
       ]
     };
 
     await put("Incidentes", item);
 
-    // Notify WebSocket connections about new incident
-    await notifyWebSocketClients(item);
-
-    // Publish to SNS for email notifications
-    await publishToSNS(item);
+    // Notify WebSocket connections and SNS (don't block on errors)
+    notifyWebSocketClients(item).catch(err => 
+      console.error("Error en notificación WebSocket:", err)
+    );
+    publishToSNS(item).catch(err => 
+      console.error("Error en notificación SNS:", err)
+    );
 
     return successResponse(200, {
       ok: true,
@@ -58,7 +74,7 @@ exports.handler = async (event) => {
     console.error("Error en crearIncidente:", error);
     return errorResponse(500, "Error al crear incidente", error);
   }
-};
+});
 
 /**
  * Publish incident to SNS topic for email notifications

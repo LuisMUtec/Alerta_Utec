@@ -13,11 +13,16 @@ const { successResponse, errorResponse } = require("../utils/responses");
 exports.handler = async (event) => {
   try {
     const data = JSON.parse(event.body);
-    const { email, password, rol } = data;
+    const { email, password, rol, area } = data;
 
     // Validate required fields
     if (!email || !password || !rol) {
       return errorResponse(400, "Email, password y rol son requeridos");
+    }
+
+    // Validar que autoridades tengan un área asignada
+    if (rol === "autoridad" && !area) {
+      return errorResponse(400, "El campo 'area' es requerido para usuarios con rol autoridad");
     }
 
     // Check if user already exists
@@ -45,6 +50,11 @@ exports.handler = async (event) => {
       rol,
       fechaCreacion: new Date().toISOString()
     };
+
+    // Agregar área solo si es autoridad
+    if (rol === "autoridad" && area) {
+      newUser.area = area;
+    }
 
     await put("Usuarios", newUser);
 
@@ -76,9 +86,10 @@ async function subscribeToSNSTopic(email, rol) {
       return;
     }
 
-    // Solo suscribir a usuarios de seguridad y administradores
+    // Solo suscribir a usuarios de seguridad y administrativos
     // Estudiantes pueden reportar pero no necesitan recibir todas las notificaciones
-    if (rol === "seguridad" || rol === "administrador") {
+    // Autoridades reciben notificaciones según su área
+    if (rol === "seguridad" || rol === "administrativo" || rol === "autoridad") {
       await sns.subscribe({
         Protocol: "email",
         TopicArn: topicArn,

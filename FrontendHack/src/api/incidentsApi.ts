@@ -9,27 +9,41 @@ interface IncidenteBackend {
   estado: string;
   fechaCreacion: string;
   emailReportante?: string;
+  userId?: string;
 }
 
 /**
- * Crear un nuevo incidente
+ * Crear un nuevo incidente (requiere autenticación)
  */
 export async function crearIncidente(data: {
   tipo: string;
   descripcion: string;
   ubicacion: string;
   urgencia: string;
-  emailReportante?: string;
 }) {
   try {
+    const token = localStorage.getItem("token");
+    
+    if (!token) {
+      throw new Error("No se encontró token de autenticación");
+    }
+
     const res = await fetch(`${API_URL}/incidentes`, {
       method: "POST",
       body: JSON.stringify(data),
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
       }
     });
-    return await res.json();
+
+    const responseData = await res.json();
+
+    if (!res.ok) {
+      throw new Error(responseData.message || "Error al crear incidente");
+    }
+
+    return responseData;
   } catch (error) {
     console.error("Error al crear incidente:", error);
     throw error;
@@ -37,11 +51,26 @@ export async function crearIncidente(data: {
 }
 
 /**
- * Listar todos los incidentes
+ * Listar todos los incidentes (requiere autenticación)
  */
 export async function listarIncidentes(): Promise<IncidenteBackend[]> {
   try {
-    const res = await fetch(`${API_URL}/incidentes`);
+    const token = localStorage.getItem("token");
+    
+    if (!token) {
+      throw new Error("No se encontró token de autenticación");
+    }
+
+    const res = await fetch(`${API_URL}/incidentes`, {
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    });
+
+    if (!res.ok) {
+      throw new Error("Error al listar incidentes");
+    }
+
     const data = await res.json();
     return data.items || [];
   } catch (error) {
@@ -51,17 +80,29 @@ export async function listarIncidentes(): Promise<IncidenteBackend[]> {
 }
 
 /**
- * Actualizar el estado de un incidente
+ * Actualizar el estado de un incidente (requiere autenticación)
  */
 export async function actualizarEstado(id: string, nuevoEstado: string) {
   try {
+    const token = localStorage.getItem("token");
+    
+    if (!token) {
+      throw new Error("No se encontró token de autenticación");
+    }
+
     const res = await fetch(`${API_URL}/incidentes/${id}/estado`, {
       method: "PATCH",
       body: JSON.stringify({ nuevoEstado }),
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
       }
     });
+
+    if (!res.ok) {
+      throw new Error("Error al actualizar estado");
+    }
+
     return await res.json();
   } catch (error) {
     console.error("Error al actualizar estado:", error);
@@ -116,7 +157,9 @@ export function mapIncidenteToFrontend(inc: IncidenteBackend): {
     status: (estadoMap[inc.estado] || 'pending') as 'pending' | 'in_progress' | 'resolved',
     urgency: urgenciaMap[inc.urgencia] || 'medium',
     timestamp: new Date(inc.fechaCreacion).toLocaleString('es-ES'),
-    email: inc.emailReportante || ''
+    email: inc.emailReportante || '',
+    userId: inc.userId,
+    reportedBy: inc.emailReportante || 'Anónimo'
   };
 }
 
@@ -166,6 +209,7 @@ export async function registrarUsuario(data: {
   email: string;
   password: string;
   rol: string;
+  area?: string;
 }) {
   try {
     const res = await fetch(`${API_URL}/auth/register`, {

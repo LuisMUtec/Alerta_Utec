@@ -47,7 +47,8 @@ exports.handler = async (event) => {
       {
         userId: user.userId,
         email: user.email,
-        rol: user.rol
+        rol: user.rol,
+        area: user.area || null
       },
       JWT_SECRET,
       { expiresIn: "24h" }
@@ -58,7 +59,8 @@ exports.handler = async (event) => {
       token,
       user: {
         userId: user.userId,
-        rol: user.rol
+        rol: user.rol,
+        area: user.area || null
       }
     });
 

@@ -8,4 +8,6 @@ export interface Incident {
   urgency: 'low' | 'medium' | 'high' | 'critical';
   timestamp: string;
   email?: string;
+  userId?: string;
+  reportedBy?: string;
 }

@@ -19,6 +19,7 @@ export default function Admin() {
   const [incidentes, setIncidentes] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [wsConnected, setWsConnected] = useState(false);
+  const [filtroArea, setFiltroArea] = useState<'todos' | 'mi_area'>('todos');
   const [stats, setStats] = useState<Stats>({
     total: 0,
     pendientes: 0,
@@ -45,14 +46,48 @@ export default function Admin() {
     }
   }, []);
 
+  // Mapeo de áreas de usuario a tipos de incidente
+  const mapAreaToIncidentType = (area: string): string[] => {
+    const mapping: Record<string, string[]> = {
+      'seguridad': ['security'],
+      'enfermeria': ['medical'],
+      'infraestructura': ['infrastructure'],
+      'limpieza': ['infrastructure'],
+      'tecnologia': ['infrastructure', 'other'],
+      'mantenimiento': ['infrastructure']
+    };
+    return mapping[area] || [];
+  };
+
+  // Filtrar incidentes según el área del usuario
+  const getIncidentesFiltrados = useCallback(() => {
+    const rol = localStorage.getItem("rol");
+    const area = localStorage.getItem("area");
+
+    // Administradores y seguridad ven todo
+    if (rol === "administrador" || rol === "seguridad") {
+      return incidentes;
+    }
+
+    // Autoridades pueden filtrar por su área
+    if (rol === "autoridad" && area && filtroArea === 'mi_area') {
+      const tiposRelacionados = mapAreaToIncidentType(area);
+      return incidentes.filter(inc => tiposRelacionados.includes(inc.type));
+    }
+
+    return incidentes;
+  }, [incidentes, filtroArea]);
+
+  const incidentesFiltrados = getIncidentesFiltrados();
+
   const calcularEstadisticas = useCallback(() => {
     setStats({
-      total: incidentes.length,
-      pendientes: incidentes.filter(i => i.status === "pending").length,
-      enAtencion: incidentes.filter(i => i.status === "in_progress").length,
-      resueltos: incidentes.filter(i => i.status === "resolved").length
+      total: incidentesFiltrados.length,
+      pendientes: incidentesFiltrados.filter(i => i.status === "pending").length,
+      enAtencion: incidentesFiltrados.filter(i => i.status === "in_progress").length,
+      resueltos: incidentesFiltrados.filter(i => i.status === "resolved").length
     });
-  }, [incidentes]);
+  }, [incidentesFiltrados]);
 
   useEffect(() => {
     calcularEstadisticas();
@@ -61,7 +96,7 @@ export default function Admin() {
   useEffect(() => {
     // Verificar autenticación y rol
     const rol = localStorage.getItem("rol");
-    if (rol !== "administrador" && rol !== "seguridad") {
+    if (rol !== "administrativo" && rol !== "seguridad" && rol !== "autoridad") {
       alert("❌ No tienes permisos para acceder a esta página");
       navigate("/");
       return;
@@ -235,15 +270,45 @@ export default function Admin() {
             <Bell className="w-5 h-5" />
             Habilitar Notificaciones
           </motion.button>
+          {localStorage.getItem("rol") === "autoridad" && localStorage.getItem("area") && (
+            <>
+              <motion.button
+                onClick={() => setFiltroArea('todos')}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold shadow-lg transition-all ${
+                  filtroArea === 'todos' 
+                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white' 
+                    : 'bg-white text-gray-700 border-2 border-purple-300'
+                }`}
+              >
+                Ver Todos
+              </motion.button>
+              <motion.button
+                onClick={() => setFiltroArea('mi_area')}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold shadow-lg transition-all ${
+                  filtroArea === 'mi_area' 
+                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white' 
+                    : 'bg-white text-gray-700 border-2 border-orange-300'
+                }`}
+              >
+                Mi Área ({localStorage.getItem("area")})
+              </motion.button>
+            </>
+          )}
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-xl">
-          <h2 className="text-2xl font-bold text-blue-600 mb-6">📋 Todos los Incidentes</h2>
-          {incidentes.length === 0 ? (
+          <h2 className="text-2xl font-bold text-blue-600 mb-6">
+            📋 {filtroArea === 'mi_area' ? `Incidentes de ${localStorage.getItem("area")}` : 'Todos los Incidentes'}
+          </h2>
+          {incidentesFiltrados.length === 0 ? (
             <p className="text-center py-10 text-gray-600">No hay incidentes registrados</p>
           ) : (
             <div className="flex flex-col gap-5">
-              {incidentes.map((incidente, index) => (
+              {incidentesFiltrados.map((incidente, index) => (
                 <motion.div
                   key={incidente.id}
                   initial={{ opacity: 0, x: -20 }}

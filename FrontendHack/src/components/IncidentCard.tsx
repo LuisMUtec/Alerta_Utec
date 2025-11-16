@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MapPin, Clock, AlertCircle, HeartPulse, Shield, Wrench, ChevronRight, Loader2 } from 'lucide-react';
+import { MapPin, Clock, AlertCircle, HeartPulse, Shield, Wrench, ChevronRight, Loader2, User } from 'lucide-react';
 import { Incident } from '../types';
 
 interface IncidentCardProps {
@@ -12,7 +12,8 @@ export default function IncidentCard({ incident, onStatusChange }: IncidentCardP
 
   // Obtener rol del usuario desde localStorage
   const userRole = localStorage.getItem('rol');
-  const canChangeStatus = userRole === 'administrador' || userRole === 'seguridad';
+  // Solo autoridades, seguridad y administrativos pueden cambiar estados
+  const canChangeStatus = userRole === 'administrativo' || userRole === 'seguridad' || userRole === 'autoridad';
 
   const getTypeIcon = () => {
     switch (incident.type) {
@@ -132,6 +133,14 @@ export default function IncidentCard({ incident, onStatusChange }: IncidentCardP
               <Clock className="w-4 h-4 text-slate-400 flex-shrink-0" />
               <span className="text-slate-600">{incident.timestamp}</span>
             </div>
+            {incident.reportedBy && (
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span className="text-slate-600">
+                  <span className="font-medium text-emerald-700">Reportado por:</span> {incident.reportedBy}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between gap-3">

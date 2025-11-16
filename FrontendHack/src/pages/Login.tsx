@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, Lock, User, Loader2, AlertTriangle } from "lucide-react";
+import { Mail, Lock, User, Loader2, AlertTriangle, Shield } from "lucide-react";
 import { login, registrarUsuario } from "../api/incidentsApi";
 
 export default function Login() {
@@ -18,7 +18,8 @@ export default function Login() {
   const [registerForm, setRegisterForm] = useState({
     email: "",
     password: "",
-    rol: "estudiante"
+    rol: "estudiante",
+    area: ""
   });
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -34,6 +35,9 @@ export default function Login() {
         localStorage.setItem("userId", resp.user.userId);
         localStorage.setItem("rol", resp.user.rol);
         localStorage.setItem("token", resp.token);
+        if (resp.user.area) {
+          localStorage.setItem("area", resp.user.area);
+        }
 
         // Redirigir al home
         navigate("/");
@@ -59,7 +63,10 @@ export default function Login() {
       if (resp.ok && resp.userId) {
         // Guardar en localStorage
         localStorage.setItem("userId", resp.userId);
-        localStorage.setItem("rol", registerForm.rol); // Usar el rol del formulario
+        localStorage.setItem("rol", registerForm.rol);
+        if (registerForm.area && registerForm.rol === "autoridad") {
+          localStorage.setItem("area", registerForm.area);
+        }
 
         // Redirigir al home
         navigate("/");
@@ -224,16 +231,42 @@ export default function Login() {
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                     <select
                       value={registerForm.rol}
-                      onChange={(e) => setRegisterForm({ ...registerForm, rol: e.target.value })}
+                      onChange={(e) => setRegisterForm({ ...registerForm, rol: e.target.value, area: "" })}
                       className="w-full pl-11 pr-4 py-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                       required
                     >
                       <option value="estudiante">Estudiante</option>
+                      <option value="autoridad">Autoridad/Personal</option>
                       <option value="administrativo">Administrativo</option>
                       <option value="seguridad">Seguridad</option>
                     </select>
                   </div>
                 </div>
+
+                {registerForm.rol === "autoridad" && (
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Área / Departamento
+                    </label>
+                    <div className="relative">
+                      <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <select
+                        value={registerForm.area}
+                        onChange={(e) => setRegisterForm({ ...registerForm, area: e.target.value })}
+                        className="w-full pl-11 pr-4 py-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        required
+                      >
+                        <option value="">Selecciona un área</option>
+                        <option value="seguridad">🔒 Seguridad</option>
+                        <option value="enfermeria">🏥 Enfermería</option>
+                        <option value="infraestructura">🏗️ Infraestructura</option>
+                        <option value="limpieza">🧹 Limpieza</option>
+                        <option value="tecnologia">💻 Tecnología</option>
+                        <option value="mantenimiento">🔧 Mantenimiento</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
 
                 <button
                   type="submit"

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Filter, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import IncidentCard from './IncidentCard';
@@ -6,9 +7,11 @@ import { Incident } from '../types';
 import { listarIncidentes, actualizarEstado, mapIncidenteToFrontend, mapStatusToBackend } from '../api/incidentsApi';
 
 export default function IncidentList() {
+  const navigate = useNavigate();
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'in_progress' | 'resolved'>('all');
+  const rol = localStorage.getItem('rol');
 
   useEffect(() => {
     cargarIncidentes();
@@ -20,8 +23,14 @@ export default function IncidentList() {
       const data = await listarIncidentes();
       const incidentesMapeados = data.map(mapIncidenteToFrontend);
       setIncidents(incidentesMapeados);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al cargar incidentes:", error);
+      
+      // Si hay error de autenticación, redirigir al login
+      if (error.message?.includes('autenticación') || error.message?.includes('token')) {
+        localStorage.clear();
+        navigate('/login');
+      }
     } finally {
       setLoading(false);
     }
@@ -55,7 +64,7 @@ export default function IncidentList() {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
           <Filter className="w-6 h-6 text-blue-600" />
-          Incidentes Activos
+          {rol === "estudiante" ? "Mis Incidentes" : "Incidentes Activos"}
         </h2>
         <button
           onClick={cargarIncidentes}

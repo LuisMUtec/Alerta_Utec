@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AlertCircle, MapPin, FileText, Zap, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { crearIncidente, mapFormToBackend } from '../api/incidentsApi';
 
 export default function IncidentForm() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     type: '',
     description: '',
@@ -14,8 +16,30 @@ export default function IncidentForm() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Verificar autenticación al cargar el componente
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setMessage({ 
+        type: 'error', 
+        text: '⚠️ Debes iniciar sesión para reportar incidentes' 
+      });
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Verificar autenticación antes de enviar
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setMessage({ 
+        type: 'error', 
+        text: '⚠️ Debes iniciar sesión para reportar incidentes' 
+      });
+      setTimeout(() => navigate('/login'), 2000);
+      return;
+    }
 
     if (!formData.type || !formData.description || !formData.location) {
       setMessage({ type: 'error', text: 'Por favor completa todos los campos' });
@@ -44,9 +68,16 @@ export default function IncidentForm() {
           window.location.reload();
         }, 1000);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al crear incidente:", error);
-      setMessage({ type: 'error', text: '❌ Error al reportar incidente' });
+      
+      // Si el error es de autenticación, redirigir al login
+      if (error.message?.includes('autenticación') || error.message?.includes('token')) {
+        setMessage({ type: 'error', text: '❌ Sesión expirada. Redirigiendo al login...' });
+        setTimeout(() => navigate('/login'), 2000);
+      } else {
+        setMessage({ type: 'error', text: '❌ Error al reportar incidente' });
+      }
     } finally {
       setLoading(false);
     }
