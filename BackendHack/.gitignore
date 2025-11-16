@@ -5,4 +5,4 @@ node_modules/
 *.log
 .vscode/
 .aws/
-setup-credentials.ps1/
+setup-credentials.ps1

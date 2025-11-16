@@ -54,6 +54,9 @@ exports.handler = async (event) => {
     // Notify WebSocket connections
     await notifyWebSocketClients(incidenteId, nuevoEstado);
 
+    // Publish to SNS for email notifications
+    await publishToSNS(incidente, nuevoEstado);
+
     return successResponse(200, {
       ok: true,
       incidenteId,
@@ -65,6 +68,78 @@ exports.handler = async (event) => {
     return errorResponse(500, "Error al actualizar estado", error);
   }
 };
+
+/**
+ * Publish incident status update to SNS topic
+ */
+async function publishToSNS(incidente, nuevoEstado) {
+  try {
+    const sns = new AWS.SNS();
+    const topicArn = process.env.SNS_TOPIC_ARN;
+
+    if (!topicArn) {
+      console.error("SNS_TOPIC_ARN no está configurado");
+      return;
+    }
+
+    const tipoLabels = {
+      emergencia_medica: "Emergencia Médica",
+      seguridad: "Seguridad",
+      infraestructura: "Infraestructura",
+      otro: "Otro"
+    };
+
+    const estadoLabels = {
+      pendiente: "Pendiente",
+      en_atencion: "En Atención",
+      resuelto: "Resuelto",
+      cancelado: "Cancelado"
+    };
+
+    const mensaje = `
+📝 ACTUALIZACIÓN DE INCIDENTE - ALERTA UTEC
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ID: ${incidente.incidenteId}
+Tipo: ${tipoLabels[incidente.tipo] || incidente.tipo}
+Ubicación: ${incidente.ubicacion}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔄 CAMBIO DE ESTADO:
+   ${incidente.estado} → ${nuevoEstado}
+
+ESTADO ACTUAL: ${estadoLabels[nuevoEstado] || nuevoEstado}
+
+DESCRIPCIÓN ORIGINAL:
+${incidente.descripcion}
+
+FECHA DE ACTUALIZACIÓN:
+${new Date().toLocaleString('es-PE', {
+  dateStyle: 'full',
+  timeStyle: 'long'
+})}
+
+${incidente.emailReportante ? `CONTACTO DEL REPORTANTE:\n${incidente.emailReportante}\n\n` : ''}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Accede al panel de administración para más detalles.
+
+--
+Sistema de Alertas UTEC
+Notificación automática
+    `.trim();
+
+    await sns.publish({
+      TopicArn: topicArn,
+      Message: mensaje,
+      Subject: `📝 Estado actualizado: ${incidente.incidenteId} → ${estadoLabels[nuevoEstado]}`
+    }).promise();
+
+    console.log("Notificación SNS de cambio de estado enviada");
+  } catch (error) {
+    console.error("Error publicando a SNS:", error);
+  }
+}
 
 /**
  * Send notification to all WebSocket connections

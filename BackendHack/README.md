@@ -62,14 +62,30 @@ Los incidentes pasan por diferentes estados durante su ciclo de vida:
 - **CORS habilitado**: Para integración con frontend
 - **Validación de datos**: Validación en todos los endpoints
 
-## 🔄 WebSockets en Tiempo Real
+## 🔄 Notificaciones en Tiempo Real
 
+### WebSockets
 El sistema utiliza AWS API Gateway WebSocket para:
 
-- Notificaciones instantáneas de nuevos incidentes
+- Notificaciones instantáneas de nuevos incidentes en el panel Admin
 - Actualizaciones de estado en tiempo real
 - Conexión persistente entre cliente y servidor
 - Gestión automática de conexiones obsoletas
+
+### Amazon SNS (Simple Notification Service)
+Sistema de notificaciones por correo electrónico:
+
+- **Nuevos incidentes**: Email automático cuando se crea un incidente
+- **Cambios de estado**: Email cuando se actualiza el estado de un incidente
+- **Suscripción automática**: Usuarios con rol `seguridad` o `administrador` se suscriben automáticamente al registrarse
+- **Confirmación requerida**: Los usuarios deben confirmar su suscripción haciendo click en el link enviado por AWS SNS
+- **Formato texto plano**: Emails legibles con todos los detalles del incidente
+
+#### Quiénes reciben notificaciones por email:
+- ✅ Usuarios registrados con rol **seguridad**
+- ✅ Usuarios registrados con rol **administrador**
+- ✅ Email configurado en `serverless.yml` (`seguridad@utec.edu.pe`)
+- ❌ Usuarios con rol **estudiante** (solo reportan, no reciben notificaciones)
 
 ## 🗄️ Base de Datos (DynamoDB)
 
@@ -79,10 +95,12 @@ El sistema utiliza AWS API Gateway WebSocket para:
    - Clave primaria: `userId`
    - Índice secundario: `EmailIndex` para búsquedas por email
    - Campos: email, password (hasheado), rol, fechaCreacion
+   - Auto-suscripción a SNS para roles seguridad/administrador
 
 2. **Incidentes**
    - Clave primaria: `incidenteId`
-   - Campos: tipo, descripcion, ubicacion, urgencia, estado, fechaCreacion, historial
+   - Campos: tipo, descripcion, ubicacion, urgencia, estado, fechaCreacion, historial, emailReportante (opcional)
+   - Notificaciones SNS al crear o actualizar
 
 3. **WebSocketConnections**
    - Clave primaria: `connectionId`
@@ -95,6 +113,8 @@ El sistema utiliza AWS API Gateway WebSocket para:
 - **Escalabilidad automática**: Lambda escala según demanda
 - **Historial de cambios**: Cada incidente mantiene un registro de todos los cambios de estado
 - **Manejo de errores**: Responses consistentes con códigos HTTP apropiados
+- **Notificaciones multi-canal**: WebSocket para tiempo real + SNS para emails
+- **Pub/Sub con SNS**: Arquitectura de mensajería desacoplada para notificaciones
 
 ## 🧪 Endpoints
 
@@ -113,15 +133,59 @@ El sistema utiliza AWS API Gateway WebSocket para:
 - `$disconnect` - Desconectar cliente
 - `notify` - Enviar notificaciones
 
+## 📧 Configuración de Notificaciones Email
+
+Para configurar las notificaciones por email:
+
+1. **Editar `serverless.yml`** - Cambiar el email en la suscripción SNS:
+```yaml
+SecurityEmailSubscription:
+  Properties:
+    Endpoint: tu-email@utec.edu.pe  # Cambiar aquí
+```
+
+2. **Desplegar los cambios**:
+```bash
+npm run deploy
+```
+
+3. **Confirmar suscripción**: Revisar tu bandeja de entrada y hacer click en el link de confirmación enviado por AWS SNS
+
+4. **Usuarios registrados**: Al registrarse con rol `seguridad` o `administrador`, recibirán automáticamente un email de confirmación de suscripción
+
 ## 🗄️ Estructura
 
 ```
-backend/
-├── serverless.yml
+BackendHack/
+├── serverless.yml          # Configuración AWS + SNS Topic
 ├── package.json
 ├── src/
 │   ├── auth/
+│   │   ├── login.js
+│   │   └── register.js    # Suscripción automática a SNS
 │   ├── incidentes/
-│   └── websocket/
+│   │   ├── crearIncidente.js      # Publica a SNS
+│   │   ├── actualizarEstado.js    # Publica a SNS
+│   │   ├── listarIncidentes.js
+│   │   └── obtenerIncidente.js
+│   ├── websocket/
+│   │   ├── connect.js
+│   │   ├── disconnect.js
+│   │   └── notify.js
+│   ├── notifications/
+│   │   └── enviarEmail.js  # (Deprecado - SNS directo)
+│   └── utils/
+│       └── responses.js
 └── db/
+    ├── get.js
+    ├── put.js
+    ├── query.js
+    └── update.js
 ```
+
+## 📚 Documentación Adicional
+
+- `WEBSOCKET-EXPLICACION.md` - Guía completa de WebSockets
+- `CONFIGURACION-SES.md` - Información sobre Amazon SES (deprecado)
+- `DEPLOYMENT.md` - Guía de despliegue
+- `AWS-ACADEMY-SETUP.md` - Configuración para AWS Academy
