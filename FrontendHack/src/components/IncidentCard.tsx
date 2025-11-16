@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MapPin, Clock, AlertCircle, HeartPulse, Shield, Wrench, ChevronRight, Loader2, User } from 'lucide-react';
+import { MapPin, Clock, AlertCircle, HeartPulse, Shield, Wrench, ChevronRight, Loader2, User, Sparkles, Laptop, Settings } from 'lucide-react';
 import { Incident } from '../types';
 import ConfirmCancelModal from './ConfirmCancelModal';
 
@@ -23,12 +23,18 @@ export default function IncidentCard({ incident, onStatusChange }: IncidentCardP
 
   const getTypeIcon = () => {
     switch (incident.type) {
-      case 'medical':
-        return <HeartPulse className="w-6 h-6" />;
       case 'security':
         return <Shield className="w-6 h-6" />;
+      case 'medical':
+        return <HeartPulse className="w-6 h-6" />;
       case 'infrastructure':
         return <Wrench className="w-6 h-6" />;
+      case 'cleaning':
+        return <Sparkles className="w-6 h-6" />;
+      case 'technology':
+        return <Laptop className="w-6 h-6" />;
+      case 'maintenance':
+        return <Settings className="w-6 h-6" />;
       default:
         return <AlertCircle className="w-6 h-6" />;
     }
@@ -36,12 +42,18 @@ export default function IncidentCard({ incident, onStatusChange }: IncidentCardP
 
   const getTypeGradient = () => {
     switch (incident.type) {
-      case 'medical':
-        return 'from-red-500 to-pink-500';
       case 'security':
         return 'from-orange-500 to-red-500';
+      case 'medical':
+        return 'from-red-500 to-pink-500';
       case 'infrastructure':
         return 'from-blue-500 to-cyan-500';
+      case 'cleaning':
+        return 'from-emerald-500 to-teal-500';
+      case 'technology':
+        return 'from-purple-500 to-indigo-500';
+      case 'maintenance':
+        return 'from-amber-500 to-yellow-500';
       default:
         return 'from-slate-500 to-slate-600';
     }

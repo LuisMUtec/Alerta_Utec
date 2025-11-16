@@ -132,9 +132,9 @@ export function mapIncidenteToFrontend(inc: IncidenteBackend): {
     'seguridad': 'security',
     'enfermeria': 'medical',
     'infraestructura': 'infrastructure',
-    'limpieza': 'infrastructure',
-    'tecnologia': 'infrastructure',
-    'mantenimiento': 'infrastructure',
+    'limpieza': 'cleaning',
+    'tecnologia': 'technology',
+    'mantenimiento': 'maintenance',
     'general': 'other'
   };
 
@@ -157,7 +157,7 @@ export function mapIncidenteToFrontend(inc: IncidenteBackend): {
 
   return {
     id: inc.incidenteId,
-    type: (areaMap[inc.area] || 'other') as 'medical' | 'security' | 'infrastructure' | 'other',
+    type: (areaMap[inc.area] || 'other') as 'security' | 'medical' | 'infrastructure' | 'cleaning' | 'technology' | 'maintenance' | 'other',
     area: inc.area || 'general',
     title: inc.tipo.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
     description: inc.descripcion,

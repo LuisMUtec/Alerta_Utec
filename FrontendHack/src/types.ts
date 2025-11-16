@@ -1,6 +1,6 @@
 export interface Incident {
   id: string;
-  type: 'medical' | 'security' | 'infrastructure' | 'other';
+  type: 'security' | 'medical' | 'infrastructure' | 'cleaning' | 'technology' | 'maintenance' | 'other';
   area: string;
   title: string;
   description: string;
