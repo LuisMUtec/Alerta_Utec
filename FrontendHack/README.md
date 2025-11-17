@@ -15,13 +15,16 @@ Sistema web de gestión de incidentes para el campus universitario UTEC, que per
 
 ## ✨ Características
 
-- 🔐 **Sistema de autenticación** con roles diferenciados
+- 🔐 **Sistema de autenticación** con roles diferenciados y áreas especializadas
 - 📝 **Reporte de incidentes** con categorización y niveles de urgencia
-- 🔄 **Actualización en tiempo real** del estado de incidentes
+- 🔄 **Actualización en tiempo real** del estado de incidentes vía WebSocket
 - 👥 **Control de acceso basado en roles** (Estudiante, Autoridad, Administrativo)
-- 📊 **Panel administrativo** con estadísticas y gestión avanzada
-- 🔔 **Notificaciones por email** (SNS) para cambios de estado
-- 📱 **Diseño responsive** adaptado a móviles y tablets
+- 🎯 **Filtros por área** para personal especializado (seguridad, enfermería, infraestructura)
+- 📊 **Panel administrativo** con estadísticas avanzadas en tiempo real
+- 🔔 **Notificaciones multi-canal**: Email (SNS) + WebSocket + Push del navegador
+- 📱 **Diseño responsive moderno** con animaciones fluidas (Framer Motion)
+- 🔌 **WebSocket persistente** con reconexión automática
+- ✅ **5 estados de incidente**: Pendiente, En Atención, Resuelto, Cancelado
 
 ---
 
@@ -157,16 +160,21 @@ Todos los usuarios pueden visualizar los incidentes reportados.
 - ⏱ **Pendiente**: Incidente reportado, esperando atención
 - 🔄 **En Atención**: Personal trabajando en resolver el incidente
 - ✓ **Resuelto**: Incidente atendido y solucionado
+- ❌ **Cancelado**: Incidente descartado o reportado por error
 
 **Cambiar estado:**
 1. Localizar el incidente en la lista
-2. Hacer clic en el botón **"Cambiar"** junto al estado actual
+2. Hacer clic en el botón **"Cambiar Estado"** junto al estado actual
 3. El sistema cambiará automáticamente al siguiente estado:
    - Pendiente → En Atención
    - En Atención → Resuelto
-   - Resuelto → Pendiente (para reabrir)
+   - Resuelto → Cancelado
+   - Cancelado → Pendiente (para reabrir)
 
-4. Se enviará una notificación por email a los usuarios suscritos (Autoridades y Administrativos)
+4. Se enviarán notificaciones automáticamente:
+   - 📧 **Email vía SNS** a usuarios Autoridad y Administrativo
+   - 🔔 **WebSocket** a todos los clientes conectados en tiempo real
+   - 🔔 **Push del navegador** si el usuario habilitó notificaciones
 
 ---
 
@@ -185,17 +193,25 @@ Todos los usuarios pueden visualizar los incidentes reportados.
 - ⏳ **Pendientes**: Incidentes sin atender
 - 🔧 **En Atención**: Incidentes siendo atendidos
 - ✅ **Resueltos**: Incidentes completados
+- ❌ **Cancelados**: Incidentes descartados
+
+#### **Filtros Avanzados (Solo para Autoridad):**
+- 🌐 **Ver Todos**: Visualiza todos los incidentes del sistema
+- 🎯 **Mi Área**: Filtra solo incidentes de tu área especializada (ej: solo seguridad, solo enfermería)
+- Cambio dinámico entre vistas para mejor gestión
 
 #### **Lista Completa de Incidentes:**
-- Vista detallada de todos los incidentes
+- Vista detallada de todos los incidentes (o filtrados por área)
 - Posibilidad de cambiar estados directamente
-- Actualización automática vía WebSocket (si está configurado)
+- **Actualización automática vía WebSocket** (tiempo real)
+- Indicador de conexión WebSocket en el header
 
 #### **Notificaciones Push:**
 - Hacer clic en **"Habilitar Notificaciones"** para recibir alertas del navegador
 - Recibirás notificaciones cuando:
   - Se reporte un nuevo incidente
   - Se actualice el estado de un incidente
+  - Se escale un incidente (via Airflow)
 
 ---
 
@@ -217,48 +233,66 @@ Todos los usuarios pueden visualizar los incidentes reportados.
 
 ### 📋 Administrativo
 **Permisos:**
-- ✅ Ver todos los incidentes
+- ✅ Ver todos los incidentes del sistema
 - ✅ Reportar nuevos incidentes
-- ❌ NO puede cambiar estados de incidentes
-- ❌ NO tiene acceso al panel administrativo
+- ✅ **Cambiar estados de incidentes** (todos los tipos)
+- ✅ **Acceso al Panel Administrativo** con estadísticas completas
+- ✅ **Recibe notificaciones email** (SNS) de nuevos incidentes
+- ✅ **Notificaciones WebSocket en tiempo real**
+- ✅ **Supervisión completa del sistema**
 
 **Casos de uso:**
-- Reportar daños en instalaciones
-- Alertar sobre problemas operativos
-- Documentar incidentes observados
+- Supervisión general de todos los incidentes del campus
+- Gestión completa de estados de cualquier tipo de incidente
+- Análisis de estadísticas y métricas del sistema
+- Coordinación entre diferentes áreas (seguridad, enfermería, infraestructura)
+- Monitoreo en tiempo real desde el panel administrativo
 
 ---
 
-### 🛡️ Autoridad (Área de Seguridad)
+### 🛡️ Autoridad (Personal Especializado por Área)
 **Permisos:**
-- ✅ Ver todos los incidentes (acceso completo)
+- ✅ Ver todos los incidentes del sistema
 - ✅ Reportar nuevos incidentes
-- ✅ **Cambiar estados de incidentes**
-- ✅ **Acceso al panel administrativo**
-- ✅ Recibe notificaciones por email (SNS)
+- ✅ **Cambiar estados de incidentes** (de su área o todos)
+- ✅ **Acceso al Panel Administrativo** con filtros por área
+- ✅ **Recibe notificaciones email** (SNS) de incidentes de su área
+- ✅ **Notificaciones WebSocket en tiempo real**
+- ✅ **Filtro especializado por área** (ver solo incidentes de su competencia)
+
+**Áreas disponibles:**
+- 🛡️ **Seguridad**: Gestiona incidentes de seguridad, robos, amenazas
+- 🏥 **Enfermería**: Atiende emergencias médicas, primeros auxilios
+- 🔧 **Infraestructura**: Resuelve problemas de mantenimiento, fugas, daños
+- 🔥 **Bomberos**: Responde a incendios y emergencias de fuego
 
 **Casos de uso:**
-- Gestionar incidentes de todas las áreas
-- Actualizar estados conforme se atienden
-- Monitorear situaciones en tiempo real
-- Coordinar respuestas a emergencias
+- Personal de seguridad filtra solo incidentes de seguridad
+- Enfermería visualiza únicamente emergencias médicas
+- Infraestructura se enfoca en daños y mantenimiento
+- Cada área actualiza estados de sus incidentes asignados
+- Opción de ver todos los incidentes para coordinación general
 
 ---
 
-### 👨‍💼 Administrador
+### 👨‍💼 Administrador (Supervisión Global)
 **Permisos:**
-- ✅ Ver todos los incidentes
+- ✅ Ver todos los incidentes sin restricciones
 - ✅ Reportar nuevos incidentes
-- ✅ **Cambiar estados de incidentes**
-- ✅ **Acceso al panel administrativo**
-- ✅ Recibe notificaciones por email (SNS)
-- ✅ Acceso completo al sistema
+- ✅ **Cambiar estados de cualquier incidente**
+- ✅ **Acceso completo al Panel Administrativo**
+- ✅ **Recibe notificaciones email** (SNS) de todos los eventos
+- ✅ **Notificaciones WebSocket en tiempo real**
+- ✅ **Supervisión del sistema Airflow** (workflows automatizados)
+- ✅ **Acceso a métricas avanzadas y reportes**
 
 **Casos de uso:**
-- Supervisión general del sistema
-- Gestión completa de incidentes
-- Análisis de estadísticas
-- Coordinación con seguridad y personal
+- Supervisión general de toda la operación del sistema
+- Gestión completa de incidentes de todas las áreas
+- Análisis de estadísticas: tiempo de respuesta, incidentes por tipo
+- Revisión de reportes generados automáticamente por Airflow
+- Coordinación estratégica entre todas las áreas
+- Auditoría del historial completo de incidentes
 
 ---
 
@@ -314,20 +348,80 @@ Los usuarios con rol **Autoridad** y **Administrativo** son automáticamente sus
 - Verificar que el correo y contraseña sean correctos
 - Asegurarse de haber registrado la cuenta previamente
 - Revisar que el backend esté funcionando
+- Limpiar localStorage del navegador: `F12 → Application → Local Storage → Clear`
 
 ### No veo el botón "Cambiar Estado"
 - Verificar que tu rol sea **Autoridad** o **Administrativo**
-- Los roles **Estudiante** y **Administrativo** no tienen este permiso
+- El rol **Estudiante** NO tiene permiso para cambiar estados
+- Cerrar sesión y volver a iniciar si acabas de cambiar de rol
+
+### No veo el botón "Panel Admin"
+- Solo el rol **Administrativo** tiene acceso al panel de administración
+- El rol **Autoridad** NO tiene este botón (acceden desde la URL directamente si se configura)
+- Verificar tu rol en el header superior derecho
+
+### No veo los filtros por área en el Panel Admin
+- Los filtros **"Ver Todos"** y **"Mi Área"** solo aparecen para usuarios con rol **Autoridad**
+- El rol **Administrativo** siempre ve todos los incidentes sin necesidad de filtros
+- Asegúrate de tener un área asignada en tu cuenta
+
+### WebSocket desconectado
+- Verificar la conexión a internet
+- El indicador en el header muestra el estado: verde = conectado, rojo = desconectado
+- El sistema intenta reconectar automáticamente
+- Refrescar la página si el problema persiste
 
 ### No recibo notificaciones por email
 - Verificar que confirmaste la suscripción a SNS
 - Revisar la carpeta de spam/correo no deseado
 - Solo usuarios **Autoridad** y **Administrativo** reciben notificaciones
+- Revisar que tu email esté correctamente configurado en la cuenta
+
+### No recibo notificaciones Push del navegador
+- Hacer clic en "Habilitar Notificaciones" en el Panel Admin
+- Asegurarse de dar permiso cuando el navegador lo solicite
+- Las notificaciones push solo funcionan con HTTPS o localhost
+- Revisar configuración de notificaciones del navegador
 
 ### La página no carga los incidentes
 - Verificar la conexión a internet
 - Hacer clic en el botón "Actualizar"
 - Revisar que la URL del backend esté correctamente configurada en `.env`
+- Revisar la consola del navegador (`F12`) para ver errores
+
+### Veo incidentes de otras áreas siendo Autoridad
+- Asegúrate de tener seleccionado el filtro **"Mi Área"** en el Panel Admin
+- Por defecto, **"Ver Todos"** muestra todos los incidentes del sistema
+- Esto es intencional para permitir coordinación entre áreas
+
+---
+
+## 🛠️ Tecnologías Utilizadas
+
+### Frontend
+- ⚛️ **React 18** - Framework de UI moderno
+- 📘 **TypeScript** - Tipado estático para JavaScript
+- 🎨 **TailwindCSS** - Framework CSS utility-first
+- 🎭 **Framer Motion** - Librería de animaciones fluidas
+- 🧭 **React Router v7** - Navegación y routing
+- 🎯 **Lucide React** - Iconos modernos y escalables
+- ⚡ **Vite** - Build tool ultra-rápido
+
+### Backend (AWS)
+- 🚀 **AWS Amplify** - Hosting y CI/CD del frontend
+- ⚡ **AWS Lambda** - Funciones serverless para la API
+- 🌐 **API Gateway** - REST API + WebSocket API
+- 💾 **DynamoDB** - Base de datos NoSQL
+- 📧 **SNS** - Notificaciones por email
+- 🔌 **WebSocket** - Comunicación bidireccional en tiempo real
+
+### Características Técnicas
+- 🔐 **JWT Authentication** - Autenticación segura con tokens
+- 🔄 **WebSocket Persistente** - Conexión en tiempo real con reconexión automática
+- 📱 **Responsive Design** - Adaptado a móviles, tablets y desktop
+- ♿ **Accesibilidad** - Diseño inclusivo con semántica HTML correcta
+- 🎯 **Protected Routes** - Control de acceso basado en roles
+- 🔔 **Multi-channel Notifications** - Email + WebSocket + Push del navegador
 
 ---
 
@@ -349,5 +443,5 @@ Este proyecto es propiedad de la Universidad de Ingeniería y Tecnología (UTEC)
 
 Desarrollado por el equipo de tecnología de UTEC para mejorar la seguridad y respuesta ante incidentes en el campus universitario.
 
-**Versión:** 1.0.0
+**Versión:** 2.0.0
 **Última actualización:** Noviembre 2025

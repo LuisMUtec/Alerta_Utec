@@ -19,8 +19,8 @@
 | Rol | Email | Password | Permisos |
 |-----|-------|----------|----------|
 | 🎓 Estudiante | `estudiante@utec.edu.pe` | `123456` | Ver y reportar incidentes |
-| 🛡️ Autoridad | `autoridad@utec.edu.pe` | `123456` | Gestionar todos los incidentes + Panel Admin |
-| 👨‍💼 Admin | `admin@utec.edu.pe` | `123456` | Acceso completo al sistema |
+| 🛡️ Autoridad | `autoridad@utec.edu.pe` | `123456` | Gestionar incidentes de su área |
+| 👨‍💼 Admin | `admin@utec.edu.pe` | `123456` | Acceso completo al sistema  + Panel Admin |
 
 ---
 
@@ -60,93 +60,18 @@
 
 ## 🏗️ Arquitectura Cloud
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                            USUARIOS FINALES                              │
-│  👨‍🎓 Estudiantes  |  🛡️ Seguridad  |  👨‍💼 Administradores              │
-└────────────────────────────┬────────────────────────────────────────────┘
-                             │
-                             ▼
-        ┌────────────────────────────────────────────┐
-        │         AWS AMPLIFY (Frontend)             │
-        │    React + TypeScript + TailwindCSS        │
-        │   https://main.d14fh7vvz1m7i7...           │
-        └────────────┬───────────────────────────────┘
-                     │
-         ┌───────────┴──────────────┐
-         │                          │
-         ▼                          ▼
-┌─────────────────┐      ┌──────────────────────┐
-│  API Gateway    │      │  API Gateway         │
-│  (REST API)     │      │  (WebSocket API)     │
-└────────┬────────┘      └──────────┬───────────┘
-         │                          │
-         │                          ▼
-         │              ┌───────────────────────┐
-         │              │  Lambda Functions     │
-         │              │  - connect.js         │
-         │              │  - disconnect.js      │
-         │              │  - notify.js          │
-         │              └───────────┬───────────┘
-         │                          │
-         ▼                          ▼
-┌─────────────────────────────────────────────┐
-│          9 Lambda Functions                 │
-│  ┌─────────────┐  ┌──────────────────────┐ │
-│  │   Auth      │  │    Incidentes        │ │
-│  │ - login     │  │ - crear              │ │
-│  │ - register  │  │ - listar             │ │
-│  └─────────────┘  │ - obtener            │ │
-│                   │ - actualizar estado  │ │
-│                   └──────────────────────┘ │
-└────────────┬────────────────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────────────────┐
-│           DynamoDB (NoSQL)                  │
-│  ┌──────────────┐  ┌──────────────────┐   │
-│  │   Usuarios   │  │   Incidentes     │   │
-│  │   - userId   │  │   - incidenteId  │   │
-│  │   - email    │  │   - tipo         │   │
-│  │   - rol      │  │   - urgencia     │   │
-│  │   - area     │  │   - estado       │   │
-│  └──────────────┘  │   - historial    │   │
-│                    └──────────────────┘   │
-│  ┌──────────────────────────────────────┐ │
-│  │   WebSocketConnections               │ │
-│  │   - connectionId                     │ │
-│  └──────────────────────────────────────┘ │
-└────────────┬────────────────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────────────────┐
-│          Amazon SNS (Notificaciones)        │
-│     Topic: IncidentesNotificaciones         │
-│  - Email a Seguridad                        │
-│  - Email a Autoridades suscritas            │
-└─────────────────────────────────────────────┘
+**📐 Diagrama Completo de Arquitectura:**  
+👉 **[Ver Arquitectura en Eraser.io](https://app.eraser.io/workspace/2rJMGe6QAMfV3oAHAUuV?origin=share)**
 
-┌─────────────────────────────────────────────────────────────┐
-│              APACHE AIRFLOW EN ECS FARGATE                  │
-│  ┌────────────────────────────────────────────────────┐    │
-│  │  Container 1: Airflow Webserver (:8080)            │    │
-│  │  Container 2: Airflow Scheduler                    │    │
-│  └───────────────────┬────────────────────────────────┘    │
-│                      │                                      │
-│  ┌───────────────────▼────────────────────────────────┐    │
-│  │  3 DAGs Programados:                               │    │
-│  │  1️⃣ Monitorear Incidentes Antiguos (cada 5 min)   │    │
-│  │  2️⃣ Enviar Notificaciones (cada 10 min)           │    │
-│  │  3️⃣ Generar Reportes (diario)                     │    │
-│  └────────────────────────────────────────────────────┘    │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     ▼
-          ┌────────────────────┐
-          │  RDS PostgreSQL    │
-          │  (Airflow Metadata)│
-          └────────────────────┘
-```
+El sistema implementa una arquitectura **serverless completa** con los siguientes componentes principales:
+
+- **Frontend**: AWS Amplify (React + TypeScript + TailwindCSS)
+- **API Layer**: API Gateway (REST + WebSocket)
+- **Compute**: 9 Lambda Functions (Node.js 18.x)
+- **Database**: DynamoDB (3 tablas) + RDS PostgreSQL (Airflow)
+- **Notificaciones**: SNS (Email) + WebSocket (Tiempo real)
+- **Workflows**: Apache Airflow en ECS Fargate (3 DAGs programados)
+- **Monitoring**: CloudWatch (Logs + Métricas)
 
 ---
 
@@ -178,10 +103,11 @@
 ### 🎓 Rol: ESTUDIANTE
 
 **Accesos:**
-- ✅ Ver todos los incidentes del sistema
-- ✅ Reportar nuevos incidentes (emergencia médica, seguridad, infraestructura)
-- ✅ Filtrar incidentes por estado (pendiente, en atención, resuelto)
-- ❌ NO puede cambiar estados
+- ✅ Ver **solo los incidentes que él/ella ha reportado**
+- ✅ Reportar nuevos incidentes (18 tipos categorizados en 6 áreas)
+- ✅ Filtrar sus incidentes por estado (pendiente, en atención, resuelto, cancelado)
+- ❌ NO puede ver incidentes de otros usuarios
+- ❌ NO puede cambiar estados de incidentes
 - ❌ NO accede al panel administrativo
 - ❌ NO recibe notificaciones por email
 
@@ -199,58 +125,114 @@
 
 ---
 
-### 🛡️ Rol: SEGURIDAD / AUTORIDAD
+### 🛡️ Rol: AUTORIDAD (Personal Especializado por Área)
 
 **Accesos:**
-- ✅ Ver todos los incidentes (todas las áreas)
-- ✅ Reportar nuevos incidentes
-- ✅ **Cambiar estados de incidentes** (pendiente → en atención → resuelto)
-- ✅ **Acceso al Panel Administrativo** con estadísticas
-- ✅ **Recibe notificaciones email** (SNS) de nuevos incidentes
+- ✅ Ver **solo los incidentes de su área asignada** (seguridad, enfermería, infraestructura, etc.)
+- ✅ Reportar nuevos incidentes de cualquier tipo
+- ✅ **Cambiar estados de incidentes de su área** (pendiente → en atención → resuelto → cancelado)
+- ✅ **Acceso al Panel Administrativo** con estadísticas de su área
+- ✅ **Recibe notificaciones email** (SNS) de incidentes de su área
 - ✅ **Notificaciones WebSocket en tiempo real**
+- ❌ NO puede ver incidentes de otras áreas
+- ❌ NO puede cambiar estados de incidentes que no son de su área
+
+**Áreas Especializadas Disponibles:**
+- 🔒 **Seguridad**: Robos, acoso, peleas, accesos no autorizados
+- 🏥 **Enfermería**: Emergencias médicas, accidentes, malestares
+- 🏗️ **Infraestructura**: Fugas de agua, daños estructurales, inundaciones
+- 🧹 **Limpieza**: Baños sucios, basura acumulada, derrames
+- 💻 **Tecnología**: Internet caído, equipos dañados, sistemas caídos
+- 🔧 **Mantenimiento**: Luces fundidas, aire acondicionado, puertas dañadas
+
+**Casos de uso:**
+- Personal de seguridad ve **solo** incidentes de seguridad (robos, acoso, peleas)
+- Personal de enfermería visualiza **únicamente** emergencias médicas de su área
+- Personal de infraestructura gestiona **exclusivamente** problemas de infraestructura
+- Personal de limpieza atiende **solo** incidentes de limpieza
+- Personal de tecnología resuelve **únicamente** problemas técnicos
+- Actualizar estados de incidentes de su área de competencia
+- Monitorear situaciones de su área en tiempo real desde el panel
 
 **Flujo de Trabajo:**
 ```
-1. Usuario con rol Autoridad inicia sesión
+1. Usuario con rol Autoridad (área: Enfermería) inicia sesión
    → Accede al Panel Admin
-   → Ve dashboard con:
-      📊 Total Incidentes: 45
-      ⏳ Pendientes: 3
-      🔧 En Atención: 7
-      ✅ Resueltos: 35
+   → Ve dashboard con 5 tarjetas de estadísticas de su área:
+      📊 Total Incidentes (Enfermería): 12
+      ⏳ Pendientes: 2
+      🔧 En Atención: 3
+      ✅ Resueltos: 7
+      ❌ Cancelados: 0
+   → Solo visualiza incidentes del área de Enfermería
 
-2. Llega nuevo incidente (WebSocket notification)
-   → "Nuevo incidente reportado: Emergencia médica en Pabellón B"
+2. Lista de incidentes filtrada automáticamente
+   → Sistema muestra solo incidentes de salud/enfermería
+   → Ve 2 emergencias médicas pendientes de su área
+
+3. Llega nuevo incidente (WebSocket notification en tiempo real)
+   → 🔔 Notificación del navegador: "Nuevo incidente: Emergencia médica en Pabellón B"
+   → 📧 Email recibido con detalles completos
+   → Lista se actualiza automáticamente sin refrescar página
+   → Indicador verde: "WebSocket Conectado"
+
+4. Gestiona el incidente
    → Click en el incidente
    → Botón "Cambiar Estado" → Pendiente → En Atención
-   → Se envía email automático
+   → Se envía email automático a todos los suscritos (SNS)
+   → WebSocket notifica a clientes conectados
 
-3. Una vez resuelto el incidente
+5. Una vez resuelto el incidente
    → Botón "Cambiar Estado" → En Atención → Resuelto
+   → Si fue reportado por error → Cancelado
    → Incidente archivado con historial completo
+   → Estadísticas se actualizan en tiempo real
 ```
 
 ---
 
-### 👨‍💼 Rol: ADMIN
+### 👨‍💼 Rol: ADMINISTRATIVO
 
 **Accesos:**
-- ✅ Acceso completo al sistema
-- ✅ Ver, crear y gestionar todos los incidentes
-- ✅ Cambiar estados de incidentes
-- ✅ Panel administrativo con estadísticas avanzadas
-- ✅ Notificaciones email (SNS)
-- ✅ Notificaciones WebSocket
-- ✅ **Supervisión del sistema Airflow**
-- ✅ Gestión de usuarios (potencial)
+- ✅ Acceso completo al sistema sin restricciones de área
+- ✅ Ver **todos los incidentes** de todas las áreas
+- ✅ Reportar nuevos incidentes de cualquier tipo
+- ✅ **Cambiar estados de cualquier incidente** (pendiente → en atención → resuelto → cancelado)
+- ✅ **Acceso completo al Panel Administrativo** con estadísticas avanzadas
+- ✅ **Recibe notificaciones email** (SNS) de todos los eventos
+- ✅ **Notificaciones WebSocket en tiempo real**
+- ✅ **Supervisión del sistema Airflow** (workflows automatizados)
+- ✅ **Acceso a métricas avanzadas**: 5 tarjetas de estadísticas en tiempo real
+- ✅ Gestión de usuarios (potencial expansión futura)
 
 **Casos de Uso:**
 ```
-1. Revisar reportes generados por Airflow
-2. Supervisar métricas de respuesta (tiempo promedio de atención)
-3. Gestionar incidentes antiguos (Airflow detecta y escala)
-4. Auditoría del historial completo de cada incidente
-5. Supervisión general del sistema y coordinación con autoridades
+1. Supervisión general de todas las áreas del campus
+   → Dashboard con 5 métricas en tiempo real
+   → Visualización de incidentes de todas las áreas sin filtros
+
+2. Coordinación entre áreas especializadas
+   → Ver incidentes de Seguridad, Enfermería, Infraestructura simultáneamente
+   → Identificar patrones y priorizar recursos
+
+3. Gestión completa de estados
+   → Cambiar estados de cualquier incidente (sin restricciones de área)
+   → Cancelar incidentes duplicados o reportados por error
+
+4. Revisar reportes generados por Airflow
+   → Análisis de métricas: tiempo promedio de resolución
+   → Incidentes por tipo, urgencia, ubicación
+   → Reportes diarios en CSV generados automáticamente
+
+5. Monitoreo de incidentes antiguos
+   → Airflow detecta incidentes pendientes > 30 minutos
+   → Email de escalamiento automático
+   → Tomar acción inmediata sobre incidentes críticos
+
+6. Auditoría y trazabilidad
+   → Historial completo de cada incidente con timestamps
+   → Registro de quién cambió cada estado
+   → Análisis retroactivo de tiempos de respuesta
 ```
 
 ---
@@ -506,6 +488,71 @@ WebSockets permiten **comunicación bidireccional persistente** entre cliente (n
 5. ✅ Sin recargar página, datos actualizados
 ```
 
+### 📧 Formato de Notificaciones Email (SNS)
+
+**Nuevo Incidente:**
+```
+Asunto: 🚨 [Alta] Emergencia Médica - INC_a1b2c3
+
+🚨 NUEVO INCIDENTE REPORTADO - ALERTA UTEC
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ID: INC_a1b2c3
+Tipo: Emergencia Médica
+Área Asignada: 🏥 Enfermería
+Urgencia: Alta
+Estado: pendiente
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+UBICACIÓN:
+Pabellón B, Piso 2, Aula 201
+
+DESCRIPCIÓN:
+Estudiante desmayado en el pasillo
+
+FECHA Y HORA:
+viernes, 16 de noviembre de 2025, 10:30:00 GMT-5
+
+CONTACTO DEL REPORTANTE:
+estudiante@utec.edu.pe
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Accede al panel de administración para gestionar este incidente.
+
+--
+Sistema de Alertas UTEC
+Notificación automática
+```
+
+**Actualización de Estado:**
+```
+Asunto: 📝 Estado actualizado: INC_a1b2c3 → En Atención
+
+📝 ACTUALIZACIÓN DE INCIDENTE - ALERTA UTEC
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ID: INC_a1b2c3
+Tipo: Emergencia Médica
+Ubicación: Pabellón B, Piso 2
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔄 CAMBIO DE ESTADO:
+   pendiente → en_atencion
+
+ESTADO ACTUAL: En Atención
+
+DESCRIPCIÓN ORIGINAL:
+Estudiante desmayado en el pasillo
+
+FECHA DE ACTUALIZACIÓN:
+viernes, 16 de noviembre de 2025, 10:35:00 GMT-5
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+---
+
 ### 📱 Código del Cliente (Simplificado)
 
 ```typescript
@@ -639,20 +686,83 @@ function verificarPermiso(rol, accion) {
 
 ```
 Canal 1: Email (SNS)
-  → Usuarios suscritos: Autoridad, Admin
+  → Usuarios suscritos: Autoridad (todas las áreas), Administrativo
   → Trigger: Nuevo incidente, cambio de estado
-  → Formato: Texto plano con detalles completos
+  → Formato: Texto plano con emojis, separadores, información estructurada
+  → Incluye: ID, tipo, área asignada, urgencia, ubicación, descripción completa
+  → Asunto descriptivo: "🚨 [Urgencia] Tipo - ID"
+  → Confirmación requerida: Click en link de AWS SNS
 
-Canal 2: WebSocket
+Canal 2: WebSocket (Tiempo Real)
   → Clientes conectados: Panel Admin, usuarios en línea
   → Trigger: Nuevo incidente, actualización de estado
   → Formato: JSON con datos estructurados
+  → Eventos: "nuevo_incidente", "estado_actualizado"
+  → Latencia: ~100ms
+  → Reconexión automática si se desconecta
+  → Indicador visual de estado de conexión
+  → Limpieza automática de conexiones obsoletas (statusCode 410)
 
 Canal 3: Push Notifications (Browser API)
-  → Usuarios con permisos habilitados
-  → Trigger: Nuevo incidente crítico
-  → Formato: Notificación nativa del navegador
+  → Usuarios con permisos habilitados (autoridad, administrativo)
+  → Trigger: Nuevo incidente, actualización de estado
+  → Formato: Notificación nativa del navegador con icono
+  → Requiere permiso explícito del usuario
+  → Solo funciona con HTTPS o localhost
+  → Botón "Habilitar Notificaciones" en Panel Admin
 ```
+
+---
+
+### 6. Sistema de Áreas Especializadas
+
+**Asignación Automática por Tipo de Incidente:**
+
+```javascript
+// Mapeo automático tipo → área
+const asignacionAreas = {
+  // Seguridad
+  'robo': 'seguridad',
+  'acoso': 'seguridad',
+  'pelea': 'seguridad',
+  'acceso_no_autorizado': 'seguridad',
+  
+  // Salud
+  'emergencia_medica': 'enfermeria',
+  'accidente': 'enfermeria',
+  'malestar': 'enfermeria',
+  
+  // Infraestructura
+  'fuga_agua': 'infraestructura',
+  'daño_estructural': 'infraestructura',
+  'inundacion': 'infraestructura',
+  
+  // Limpieza
+  'baño_sucio': 'limpieza',
+  'basura_acumulada': 'limpieza',
+  'derrame': 'limpieza',
+  
+  // Tecnología
+  'internet_caido': 'tecnologia',
+  'equipo_dañado': 'tecnologia',
+  'sistema_caido': 'tecnologia',
+  
+  // Mantenimiento
+  'luz_fundida': 'mantenimiento',
+  'aire_acondicionado': 'mantenimiento',
+  'puerta_dañada': 'mantenimiento'
+};
+```
+
+**Filtrado en Frontend:**
+- Autoridades ven **únicamente** incidentes de su área asignada (sin opción "Ver Todos")
+- Administrativos ven todos los incidentes de todas las áreas sin restricciones
+- Estudiantes solo ven sus propios incidentes reportados
+
+**Índice en DynamoDB:**
+- `AreaIndex` (GSI) para búsquedas eficientes por área
+- Campo `area` obligatorio en tabla Usuarios (para autoridades)
+- Campo `area` auto-asignado en tabla Incidentes según tipo
 
 ---
 
@@ -698,12 +808,41 @@ Opción 3 - Admin:
 
 3. Verás confirmación: ✅ "Incidente reportado exitosamente"
 
+**Tipos de Incidentes Disponibles (18 tipos en 6 categorías):**
+
+🔒 **Seguridad:** robo, acoso, pelea, acceso_no_autorizado
+🏥 **Salud:** emergencia_medica, accidente, malestar
+🏗️ **Infraestructura:** fuga_agua, daño_estructural, inundacion
+🧹 **Limpieza:** baño_sucio, basura_acumulada, derrame
+💻 **Tecnología:** internet_caido, equipo_dañado, sistema_caido
+🔧 **Mantenimiento:** luz_fundida, aire_acondicionado, puerta_dañada
+
 **Qué sucede en el backend:**
 ```
-1. Lambda crearIncidente guarda en DynamoDB
-2. SNS envía email a usuarios con rol autoridad y admin
-3. WebSocket notifica a todos los clientes conectados
-4. Panel Admin actualiza automáticamente
+1. Lambda crearIncidente:
+   → Valida datos (tipo, descripción, ubicación, urgencia)
+   → Asigna área automáticamente según el tipo
+   → Guarda en DynamoDB con userId y timestamp
+   → Crea entrada inicial en historial
+
+2. Notificación SNS (email):
+   → Publica mensaje al topic de incidentes
+   → Email con formato legible a todos los suscritos
+   → Incluye: ID, tipo, área asignada, urgencia, ubicación, descripción
+   → Asunto: "🚨 [Urgencia] Tipo - ID"
+
+3. Notificación WebSocket (tiempo real):
+   → Obtiene todas las conexiones activas de DynamoDB
+   → Envía JSON con evento "nuevo_incidente" y data completa
+   → Limpia conexiones obsoletas automáticamente
+   → Latencia: ~100ms
+
+4. Actualización en Panel Admin:
+   → WebSocket notifica a clientes conectados
+   → Lista de incidentes se actualiza sin refrescar
+   → Contador de estadísticas se incrementa
+   → Notificación del navegador (si habilitado)
+   → Indicador visual: "WebSocket Conectado" (verde)
 ```
 
 ---
@@ -714,21 +853,41 @@ Opción 3 - Admin:
 
 2. Click en **"Panel Admin"** (header superior derecho)
 
-3. Verás dashboard con estadísticas:
+3. Verás dashboard con 5 tarjetas de estadísticas de tu área en tiempo real:
    ```
-   📊 Total Incidentes: 45
-   ⏳ Pendientes: 3
-   🔧 En Atención: 7
-   ✅ Resueltos: 35
+   📊 Total Incidentes (Tu Área): 12
+   ⏳ Pendientes: 2
+   🔧 En Atención: 3
+   ✅ Resueltos: 7
+   ❌ Cancelados: 0
    ```
+   
+   **Indicadores adicionales:**
+   - 🟢 **WebSocket Conectado** (indicador verde en el header)
+   - 🔄 Botón "Actualizar Lista" para refrescar manualmente
+   - 🔔 Botón "Habilitar Notificaciones" para push del navegador
+   
+   **Si eres Autoridad (no Administrativo):**
+   - Solo verás incidentes de tu área asignada
+   - Ejemplo: Autoridad con área "Seguridad" solo ve incidentes de seguridad
+   - Las estadísticas reflejan únicamente los incidentes de tu área
 
 4. Localizar incidente en la lista
 
 5. Click en botón **"Cambiar Estado"**:
-   - Pendiente → En Atención
-   - En Atención → Resuelto
+   - Pendiente → En Atención → Resuelto → Cancelado → Pendiente (reapertura)
+   
+   **Estados disponibles:**
+   - ⏱ **Pendiente**: Esperando atención
+   - 🔄 **En Atención**: Siendo atendido activamente
+   - ✓ **Resuelto**: Completado exitosamente
+   - ✕ **Cancelado**: Descartado o duplicado
 
-6. El sistema envía email automático al reportante
+6. El sistema envía notificaciones automáticas:
+   - 📧 **Email (SNS)** a todos los usuarios autoridad y administrativo
+   - 🔔 **WebSocket** a todos los clientes conectados al Panel Admin
+   - 🔔 **Push del navegador** (si el usuario lo habilitó)
+   - Formato email: "📝 Estado actualizado: ID → Nuevo Estado"
 
 ---
 
@@ -930,20 +1089,39 @@ def handler(event, context):
 
 ```
 📁 Líneas de Código:
-  - Frontend: ~2,500 líneas (TypeScript + React)
-  - Backend: ~1,800 líneas (Node.js)
+  - Frontend: ~2,500 líneas (TypeScript + React + TailwindCSS)
+    • Componentes: 7 (IncidentForm, IncidentCard, IncidentList, etc.)
+    • Páginas: 3 (Home, Admin, Login)
+    • Animaciones: Framer Motion para UX fluida
+  - Backend: ~1,800 líneas (Node.js 18.x)
+    • Lambda Functions: 9 (auth, incidentes, websocket)
+    • Utilidades: 5 módulos (auth, responses, withCors, db helpers)
   - Airflow: ~600 líneas (Python)
+    • DAGs: 3 (monitoreo, notificaciones, reportes)
   - Infrastructure as Code: ~400 líneas (YAML)
+    • serverless.yml: Definición completa de recursos AWS
+    • amplify.yml: Configuración de build y deploy
 
 ☁️ Recursos AWS:
-  - 9 Lambda Functions
-  - 2 API Gateways (REST + WebSocket)
-  - 3 DynamoDB Tables
-  - 1 SNS Topic
-  - 1 ECS Cluster (Fargate)
-  - 1 RDS PostgreSQL
-  - 1 ECR Repository
-  - 10+ CloudWatch Log Groups
+  - **9 Lambda Functions:**
+    • Auth: register, login
+    • Incidentes: crear, listar, obtener, actualizarEstado
+    • WebSocket: connect, disconnect, notify
+  - **2 API Gateways:**
+    • REST API: Endpoints HTTP para CRUD
+    • WebSocket API: Comunicación bidireccional en tiempo real
+  - **3 DynamoDB Tables:**
+    • Usuarios (EmailIndex, AreaIndex)
+    • Incidentes (UserIdIndex)
+    • WebSocketConnections
+  - **1 SNS Topic:** IncidentesNotificaciones
+  - **1 ECS Fargate Cluster:**
+    • 2 containers: Airflow Webserver + Scheduler
+    • 1 vCPU, 2GB RAM por task
+  - **1 RDS PostgreSQL:** db.t3.micro para metadata de Airflow
+  - **1 ECR Repository:** Imágenes Docker de Airflow
+  - **10+ CloudWatch Log Groups:** Logs de todas las Lambda + Airflow
+  - **1 Amplify App:** Hosting frontend con CI/CD automático
 
 💰 Costo Estimado Mensual (tráfico bajo):
   - Lambda: $0-5
@@ -952,6 +1130,49 @@ def handler(event, context):
   - Fargate: $10-20
   - Amplify: $0 (incluido en free tier)
   - TOTAL: ~$30-40/mes
+```
+
+---
+
+## 🛠️ Stack Tecnológico Completo
+
+### Frontend
+```
+⚛️ React 18.3.1          - Framework de UI moderno con Hooks
+📘 TypeScript 5.5.3      - Tipado estático para JavaScript
+🎨 TailwindCSS 3.4.1     - Framework CSS utility-first
+🎭 Framer Motion 12.23   - Animaciones fluidas y transiciones
+🧭 React Router v7.9.6   - Routing y navegación
+🎯 Lucide React 0.344    - Iconos modernos SVG
+⚡ Vite 7.2.2            - Build tool ultra-rápido
+```
+
+### Backend
+```
+🟢 Node.js 18.x          - Runtime JavaScript serverless
+⚡ AWS Lambda             - Funciones serverless escalables
+🌐 API Gateway           - REST + WebSocket APIs
+💾 DynamoDB              - Base de datos NoSQL serverless
+📧 Amazon SNS            - Pub/Sub para notificaciones email
+🔐 JWT + Bcrypt          - Autenticación segura con tokens
+📦 Serverless Framework  - Infrastructure as Code (IaC)
+```
+
+### Workflows & Automation
+```
+🐍 Python 3.9            - Lenguaje para DAGs de Airflow
+🔄 Apache Airflow 2.5    - Orquestación de workflows
+🐳 Docker                - Contenedores para Airflow
+🐋 ECS Fargate           - Contenedores serverless
+🗄️ PostgreSQL 13         - Metadata store de Airflow
+```
+
+### DevOps & Monitoring
+```
+🚀 AWS Amplify           - CI/CD frontend automático
+📊 CloudWatch            - Logs, métricas, alertas
+🐙 GitHub                - Control de versiones
+🔧 AWS CLI               - Gestión de recursos AWS
 ```
 
 ---
